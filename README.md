@@ -1,1 +1,1 @@
-# yii2-schedule
+Yii2 schedule
