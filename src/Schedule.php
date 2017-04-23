@@ -13,6 +13,17 @@ class Schedule
      */
     protected $events = [];
 
+
+    /**
+     * 设置所有任务
+     * @param $schedules
+     */
+    public function setSchedules($schedules){
+        if($schedules && $schedules instanceof \Closure){
+            call_user_func($schedules, $this);
+        }
+    }
+
     /**
      * Add a new callback event to the schedule.
      *

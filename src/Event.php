@@ -255,7 +255,7 @@ class Event
      */
     protected function expressionPasses()
     {
-        return CronExpression::factory($this->expression)->isDue($date->toDateTimeString());
+        return CronExpression::factory($this->expression)->isDue();
     }
 
     /**

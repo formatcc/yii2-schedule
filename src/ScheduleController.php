@@ -13,10 +13,18 @@ class ScheduleController extends Controller
     protected $schedule;
 
     /**
+     * 回调设置所有任务的函数
+     * @var \Closure
+     */
+    public $schedules;
+
+    /**
      * 创建任务对象
      */
     public function init()
     {
+        $this->schedule = new Schedule();
+        $this->schedule->setSchedules($this->schedules);
     }
 
     /**
@@ -24,9 +32,9 @@ class ScheduleController extends Controller
      */
     public function actionRun()
     {
-        $this->schedule = new Schedule();
 
         $events = $this->schedule->dueEvents();
+        return;
 
         $eventsRan = 0;
 
