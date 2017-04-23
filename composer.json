@@ -9,7 +9,7 @@
         }
     ],
     "require": {
-        "mtdowling/cron-expression": "~1.0",
+        "mtdowling/cron-expression": "~1.0"
     },
     "autoload": {
         "psr-4": {
