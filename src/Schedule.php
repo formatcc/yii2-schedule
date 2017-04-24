@@ -28,10 +28,9 @@ class Schedule {
      * Add a new Artisan command event to the schedule.
      *
      * @param $command
-     * @param array $parameters
      * @return Event
      */
-    public function command( $command, array $parameters = [ ] ) {
+    public function command( $command) {
         $binary = ProcessUtils::escapeArgument( ( new PhpExecutableFinder )->find( false ) );
 
         if ( defined( 'HHVM_VERSION' ) ) {
@@ -45,36 +44,18 @@ class Schedule {
             $yii = 'yii';
         }
 
-        return $this->exec( "{$binary} {$yii} {$command}", $parameters );
+        return $this->exec( "{$binary} {$yii} {$command}" );
     }
 
     /**
      * Add a new command event to the schedule.
      *
      * @param $command
-     * @param array $parameters
      * @return Event
      */
-    public function exec( $command, array $parameters = [ ] ) {
-        if ( count( $parameters ) ) {
-            $command .= ' ' . $this->compileParameters( $parameters );
-        }
-
+    public function exec($command) {
         $this->events[] = $event = new Event( $command );
-
         return $event;
-    }
-
-    /**
-     * Compile parameters for a command.
-     *
-     * @param  array $parameters
-     * @return string
-     */
-    protected function compileParameters( array $parameters ) {
-        return collect( $parameters )->map( function ( $value, $key ) {
-            return is_numeric( $key ) ? $value : $key . '=' . ( is_numeric( $value ) ? $value : ProcessUtils::escapeArgument( $value ) );
-        } )->implode( ' ' );
     }
 
     /**
@@ -90,6 +71,7 @@ class Schedule {
      * @return array
      */
     public function dueEvents() {
+        var_dump($this->events());
         return array_filter( $this->events, function ( Event $event ) {
             return $event->isDue();
         } );
