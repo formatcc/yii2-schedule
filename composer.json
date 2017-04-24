@@ -16,5 +16,8 @@
         "psr-4": {
             "Formatcc\\Yii2Schedule\\": "src"
         }
+    },
+    "extra": {
+        "bootstrap": "Formatcc\\Yii2Schedule\\Bootstrap"
     }
 }
