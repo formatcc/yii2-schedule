@@ -8,6 +8,7 @@
             "email": "young123tao@163.com"
         }
     ],
+    "type": "yii2-extension",
     "require": {
         "mtdowling/cron-expression": "~1.0",
         "symfony/process": "~2.8|~3.0"
