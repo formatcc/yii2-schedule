@@ -3,7 +3,6 @@
 namespace Formatcc\Yii2Schedule;
 
 use Closure;
-use LogicException;
 use Cron\CronExpression;
 use GuzzleHttp\Client as HttpClient;
 use Symfony\Component\Process\Process;
@@ -129,33 +128,35 @@ class Event
     /**
      * Run the given event.
      *
-     * @param  \Illuminate\Contracts\Container\Container  $container
-     * @return void
+     * @param Application $app
      */
     public function run(Application $app)
     {
         if (! $this->runInBackground) {
-            $this->runCommandInForeground($container);
+            $this->runCommandInForeground($app);
         } else {
-            $this->runCommandInBackground();
+            $this->runCommandInBackground($app);
         }
+    }
+
+    public function getBaseDir(Application $app){
+        return dirname($app->request->getScriptFile());
     }
 
     /**
      * Run the command in the foreground.
      *
-     * @param  \Illuminate\Contracts\Container\Container  $container
-     * @return void
+     * @param Application $app
      */
-    protected function runCommandInForeground(Container $container)
+    protected function runCommandInForeground(Application $app)
     {
-        $this->callBeforeCallbacks($container);
+        $this->callBeforeCallbacks($app);
 
         (new Process(
-            trim($this->buildCommand(), '& '), base_path(), null, null, null
+            trim($this->buildCommand(), '& '), $this->getBaseDir($app), null, null, null
         ))->run();
 
-        $this->callAfterCallbacks($container);
+        $this->callAfterCallbacks($app);
     }
 
     /**
@@ -163,36 +164,36 @@ class Event
      *
      * @return void
      */
-    protected function runCommandInBackground()
+    protected function runCommandInBackground(Application $app)
     {
         (new Process(
-            $this->buildCommand(), base_path(), null, null, null
+            $this->buildCommand(), $this->getBaseDir($app), null, null, null
         ))->run();
     }
 
     /**
      * Call all of the "before" callbacks for the event.
      *
-     * @param  \Illuminate\Contracts\Container\Container  $container
+     * @param  Application $app
      * @return void
      */
-    protected function callBeforeCallbacks(Container $container)
+    protected function callBeforeCallbacks(Application $app)
     {
         foreach ($this->beforeCallbacks as $callback) {
-            $container->call($callback);
+            call_user_func($callback, $app);
         }
     }
 
     /**
      * Call all of the "after" callbacks for the event.
      *
-     * @param  \Illuminate\Contracts\Container\Container  $container
+     * @param  Application $app
      * @return void
      */
-    protected function callAfterCallbacks(Container $container)
+    protected function callAfterCallbacks(Application $app)
     {
         foreach ($this->afterCallbacks as $callback) {
-            $container->call($callback);
+            call_user_func($callback, $app);
         }
     }
 
@@ -208,7 +209,7 @@ class Event
         $redirect = $this->shouldAppendOutput ? ' >> ' : ' > ';
 
         if ($this->withoutOverlapping) {
-            if (windows_os()) {
+            if ($this->isWindowsOs()) {
                 $command = '(echo \'\' > "'.$this->mutexPath().'" & '.$this->command.' & del "'.$this->mutexPath().'")'.$redirect.$output.' 2>&1 &';
             } else {
                 $command = '(touch '.$this->mutexPath().'; '.$this->command.'; rm '.$this->mutexPath().')'.$redirect.$output.' 2>&1 &';
@@ -217,7 +218,15 @@ class Event
             $command = $this->command.$redirect.$output.' 2>&1 &';
         }
 
-        return $this->user && ! windows_os() ? 'sudo -u '.$this->user.' -- sh -c \''.$command.'\'' : $command;
+        return $this->user && ! $this->isWindowsOs() ? 'sudo -u '.$this->user.' -- sh -c \''.$command.'\'' : $command;
+    }
+
+    /**
+     * 判断是否是windows操作系统
+     * @return bool
+     */
+    private function isWindowsOs(){
+        return (DIRECTORY_SEPARATOR == '\\') ? true : false;
     }
 
     /**
@@ -227,7 +236,7 @@ class Event
      */
     protected function mutexPath()
     {
-        return storage_path('framework'.DIRECTORY_SEPARATOR.'schedule-'.sha1($this->expression.$this->command));
+        return \Yii::getAlias("@runtime").DIRECTORY_SEPARATOR."schedule".DIRECTORY_SEPARATOR."schedule-".sha1($this->expression.$this->command);
     }
 
     /**
@@ -246,25 +255,30 @@ class Event
      */
     protected function expressionPasses()
     {
-        return CronExpression::factory($this->expression)->isDue();
+        $date = new \DateTime('now');
+        if ($this->timezone) {
+            $date->setTimezone($this->timezone);
+        }
+
+        return CronExpression::factory($this->expression)->isDue($date);
     }
 
     /**
      * Determine if the filters pass for the event.
      *
-     * @param  \Illuminate\Contracts\Foundation\Application  $app
+     * @param Application $app
      * @return bool
      */
-    public function filtersPass($app)
+    public function filtersPass(Application $app)
     {
         foreach ($this->filters as $callback) {
-            if (! $app->call($callback)) {
+            if (! call_user_func($callback, $app)) {
                 return false;
             }
         }
 
         foreach ($this->rejects as $callback) {
-            if ($app->call($callback)) {
+            if (call_user_func($callback, $app)) {
                 return false;
             }
         }
@@ -653,79 +667,6 @@ class Event
         return $this->sendOutputTo($location, true);
     }
 
-    /**
-     * E-mail the results of the scheduled operation.
-     *
-     * @param  array|mixed  $addresses
-     * @param  bool  $onlyIfOutputExists
-     * @return $this
-     *
-     * @throws \LogicException
-     */
-    public function emailOutputTo($addresses, $onlyIfOutputExists = false)
-    {
-        if (is_null($this->output) || $this->output == $this->getDefaultOutput()) {
-            throw new LogicException('Must direct output to a file in order to e-mail results.');
-        }
-
-        $addresses = is_array($addresses) ? $addresses : func_get_args();
-
-        return $this->then(function (Mailer $mailer) use ($addresses, $onlyIfOutputExists) {
-            $this->emailOutput($mailer, $addresses, $onlyIfOutputExists);
-        });
-    }
-
-    /**
-     * E-mail the results of the scheduled operation if it produces output.
-     *
-     * @param  array|mixed  $addresses
-     * @return $this
-     *
-     * @throws \LogicException
-     */
-    public function emailWrittenOutputTo($addresses)
-    {
-        return $this->emailOutputTo($addresses, true);
-    }
-
-    /**
-     * E-mail the output of the event to the recipients.
-     *
-     * @param  \Illuminate\Contracts\Mail\Mailer  $mailer
-     * @param  array  $addresses
-     * @param  bool  $onlyIfOutputExists
-     * @return void
-     */
-    protected function emailOutput(Mailer $mailer, $addresses, $onlyIfOutputExists = false)
-    {
-        $text = file_get_contents($this->output);
-
-        if ($onlyIfOutputExists && empty($text)) {
-            return;
-        }
-
-        $mailer->raw($text, function ($m) use ($addresses) {
-            $m->subject($this->getEmailSubject());
-
-            foreach ($addresses as $address) {
-                $m->to($address);
-            }
-        });
-    }
-
-    /**
-     * Get the e-mail subject line for output results.
-     *
-     * @return string
-     */
-    protected function getEmailSubject()
-    {
-        if ($this->description) {
-            return 'Scheduled Job Output ('.$this->description.')';
-        }
-
-        return 'Scheduled Job Output';
-    }
 
     /**
      * Register a callback to ping a given URL before the job runs.

@@ -13,11 +13,9 @@ class ScheduleController extends Controller
     protected $schedule;
 
     /**
-     * 回调设置所有任务的函数
-     * @var \Closure
+     * 任务配置文件
+     * @var
      */
-    public $schedules;
-
     public $scheduleFile;
 
     public function options($actionID){
@@ -31,6 +29,8 @@ class ScheduleController extends Controller
      */
     public function init(){
         $this->schedule = new Schedule();
+        $this->schedule->checkRuntime();
+
         parent::init();
     }
 
@@ -43,20 +43,22 @@ class ScheduleController extends Controller
         $events = $this->schedule->dueEvents(\Yii::$app);
 
         $eventsRan = 0;
+
         foreach ($events as $event) {
             if (! $event->filtersPass(\Yii::$app)) {
                 continue;
             }
             $this->stdout('Running scheduled command: '.$event->getSummaryForDisplay()."\n");
 
+            echo $event->expression."\n";
             $event->run(\Yii::$app);
+
             ++$eventsRan;
         }
 
         if (count($events) === 0 || $eventsRan === 0) {
             $this->stdout('No scheduled commands are ready to run.');
         }
-
     }
 
     /**

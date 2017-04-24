@@ -25,7 +25,7 @@ class Schedule {
     }
 
     /**
-     * Add a new Artisan command event to the schedule.
+     * Add a new Yii command event to the schedule.
      *
      * @param $command
      * @return Event
@@ -71,9 +71,20 @@ class Schedule {
      * @return array
      */
     public function dueEvents() {
-        var_dump($this->events());
         return array_filter( $this->events, function ( Event $event ) {
             return $event->isDue();
         } );
+    }
+
+    /**
+     * 检测运行时需要的目录是否存在
+     * @return bool
+     */
+    public function checkRuntime(){
+        $dir = \Yii::getAlias("@runtime").DIRECTORY_SEPARATOR."schedule";
+        if (is_dir($dir) || @mkdir($dir, "0777")) {
+            return true;
+        }
+        return false;
     }
 }

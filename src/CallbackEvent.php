@@ -4,7 +4,7 @@ namespace Formatcc\Yii2Schedule;
 
 use LogicException;
 use InvalidArgumentException;
-use Illuminate\Contracts\Container\Container;
+use yii\base\Application;
 
 class CallbackEvent extends Event
 {
@@ -46,24 +46,22 @@ class CallbackEvent extends Event
     /**
      * Run the given event.
      *
-     * @param  \Illuminate\Contracts\Container\Container  $container
+     * @param Application $app
      * @return mixed
-     *
-     * @throws \Exception
      */
-    public function run(Container $container)
+    public function run(Application $app)
     {
         if ($this->description) {
             touch($this->mutexPath());
         }
 
         try {
-            $response = $container->call($this->callback, $this->parameters);
+            $response = call_user_func($this->callback, $this->parameters);
         } finally {
             $this->removeMutex();
         }
 
-        parent::callAfterCallbacks($container);
+        parent::callAfterCallbacks($app);
 
         return $response;
     }
@@ -105,9 +103,9 @@ class CallbackEvent extends Event
      *
      * @return string
      */
-    protected function mutexPath()
+    public function mutexPath()
     {
-        return storage_path('framework/schedule-'.sha1($this->description));
+        return \Yii::getAlias("@runtime").DIRECTORY_SEPARATOR."schedule".DIRECTORY_SEPARATOR."schedule-".sha1($this->description);
     }
 
     /**
