@@ -226,7 +226,7 @@ class Event
      * @return bool
      */
     private function isWindowsOs(){
-        return (DIRECTORY_SEPARATOR == '\\') ? true : false;
+        return strtolower(substr(PHP_OS, 0, 3)) === 'win';
     }
 
     /**

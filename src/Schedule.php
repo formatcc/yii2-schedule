@@ -82,7 +82,7 @@ class Schedule {
      */
     public function checkRuntime(){
         $dir = \Yii::getAlias("@runtime").DIRECTORY_SEPARATOR."schedule";
-        if (is_dir($dir) || @mkdir($dir, "0777")) {
+        if (is_dir($dir) || @mkdir($dir, 0777) || @chmod($dir, 0777)) {
             return true;
         }
         return false;
