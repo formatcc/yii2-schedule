@@ -3,14 +3,12 @@
 namespace Formatcc\Yii2Schedule;
 
 use Closure;
-use Carbon\Carbon;
 use LogicException;
 use Cron\CronExpression;
 use GuzzleHttp\Client as HttpClient;
-use Illuminate\Contracts\Mail\Mailer;
 use Symfony\Component\Process\Process;
 use Symfony\Component\Process\ProcessUtils;
-use Illuminate\Contracts\Container\Container;
+use yii\base\Application;
 
 class Event
 {
@@ -41,13 +39,6 @@ class Event
      * @var string
      */
     public $user;
-
-    /**
-     * The list of environments the command should run under.
-     *
-     * @var array
-     */
-    public $environments = [];
 
 
     /**
@@ -141,7 +132,7 @@ class Event
      * @param  \Illuminate\Contracts\Container\Container  $container
      * @return void
      */
-    public function run(Container $container)
+    public function run(Application $app)
     {
         if (! $this->runInBackground) {
             $this->runCommandInForeground($container);
