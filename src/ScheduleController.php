@@ -24,15 +24,6 @@ class ScheduleController extends Controller
         );
     }
 
-    /**
-     * Returns option alias names.
-     */
-    public function optionAliases(){
-        return array_merge(parent::optionAliases(), [
-            'f' => 'scheduleFile'
-        ]);
-    }
-
 
     /**
      * 创建任务对象
