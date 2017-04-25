@@ -8,21 +8,31 @@ class ScheduleController extends Controller
 {
 
     /**
-     * 任务对象
+     * The schedule instance.
      */
     protected $schedule;
 
     /**
-     * 任务配置文件
-     * @var
+     * @var string
+     * schedule configuration file.
      */
-    public $scheduleFile;
+    public $schedules;
 
     public function options($actionID){
         return array_merge(parent::options($actionID),
-            $actionID == 'run' ? ['scheduleFile'] : []
+            $actionID == 'run' ? ['schedules'] : []
         );
     }
+
+    /**
+     * Returns option alias names.
+     */
+    public function optionAliases(){
+        return array_merge(parent::optionAliases(), [
+            'f' => 'scheduleFile'
+        ]);
+    }
+
 
     /**
      * 创建任务对象
@@ -50,7 +60,6 @@ class ScheduleController extends Controller
             }
             $this->stdout('Running scheduled command: '.$event->getSummaryForDisplay()."\n");
 
-            echo $event->expression."\n";
             $event->run(\Yii::$app);
 
             ++$eventsRan;
@@ -65,7 +74,7 @@ class ScheduleController extends Controller
      * 加载配置文件
      */
     private function loadConfig(){
-        $scheduleFile = \Yii::getAlias($this->scheduleFile);
+        $scheduleFile = \Yii::getAlias($this->schedules);
         if (file_exists($scheduleFile) == false) {
             $this->stderr('Can not load schedule file '.$scheduleFile."\n");
             return;

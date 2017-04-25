@@ -5,6 +5,7 @@ namespace Formatcc\Yii2Schedule;
 use LogicException;
 use InvalidArgumentException;
 use yii\base\Application;
+use yii\base\InvalidCallException;
 
 class CallbackEvent extends Event
 {
@@ -64,6 +65,14 @@ class CallbackEvent extends Event
         parent::callAfterCallbacks($app);
 
         return $response;
+    }
+
+    /**
+     * Callback event do not run in background.
+     */
+    public function runInBackground()
+    {
+        throw new InvalidCallException("CallbackEvent do not support run in background");
     }
 
     /**
